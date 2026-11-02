@@ -39,6 +39,7 @@ button{cursor:pointer}
 .rotulo{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--suave)}
 .nota{font-size:14.5px;color:var(--suave)}
 .chamada{font-family:var(--f-cartaz);font-weight:400;font-size:clamp(28px,7.5vw,40px);line-height:1.05;text-wrap:balance}
+.chamada u{text-decoration:none;color:var(--flash)}
 .cartao{background:var(--corpo);border:1px solid var(--linha);border-radius:18px;padding:18px;display:grid;gap:14px;min-width:0}
 
 .btn{background:var(--flash);color:var(--flash-tinta);border:0;border-radius:14px;font-weight:800;font-size:18px;padding:14px 20px;min-height:54px}
@@ -355,8 +356,8 @@ function seg(a,ops,atual){return '<div class="seg">'+ops.map(o=>'<button data-a=
 function telaConfig(){
   const pode=nomes().length>=2;
   return topo()+
-  '<section class="bloco"><h2 class="chamada">Bebe, posa, guarda a memória.</h2><p class="nota">De 11 a 20 minutos o alarme toca: todo mundo bebe, alguém é sorteado para uma pose e a foto sai na hora. As fotos ficam só neste aparelho.</p></section>'+
-  '<section class="cartao"><p class="rotulo">Quem está na resenha</p><ul class="jogadores">'+s.jogadores.map((p,i)=>
+  '<section class="bloco"><h2 class="chamada">A resenha de hoje <u>vai ter prova</u>.</h2><p class="nota">De tempos em tempos o alarme toca: todo mundo bebe, alguém faz uma pose e a foto sai na hora. As fotos ficam só neste aparelho, ninguém mais vê.</p></section>'+
+  '<section class="cartao"><p class="rotulo">Quem colou hoje</p><ul class="jogadores">'+s.jogadores.map((p,i)=>
     '<li><input type="text" id="j-'+i+'" data-j="'+i+'" value="'+esc(p.nome)+'" placeholder="Nome" maxlength="18" autocomplete="off" aria-label="Jogador '+(i+1)+'">'+
     '<button class="sem" data-a="sem" data-i="'+i+'" aria-pressed="'+p.sem+'">Sem álcool</button>'+
     '<button class="btn sec mini" data-a="tirar" data-i="'+i+'" aria-label="Tirar">✕</button></li>').join("")+'</ul>'+
@@ -371,18 +372,18 @@ function telaConfig(){
     '<p class="nota">Cada marcação libera poses extras: com o pet, ou com cigarro na mão. Total de poses: <b id="total-poses">'+new Set(poses()).size+'</b>.</p>'+
     '<p class="rotulo">Limite da noite</p>'+seg("limite",[[8,"8 rodadas"],[12,"12"],[16,"16"],[0,"Sem limite"]],s.limite)+
     '<p class="nota">'+(s.limite?"Com intervalos de 11 a 20 min, "+s.limite+" rodadas dão umas "+Math.round(s.limite*15.5/60*2)/2+" horas.":"Sem limite, o jogo só acaba quando vocês encerrarem.")+'</p></section>'+
-  '<section class="cartao"><p class="rotulo">Para o alarme tocar</p><ul class="regras">'+
+  '<section class="cartao"><p class="rotulo">Pro alarme não falhar</p><ul class="regras">'+
     '<li>Deixe este aparelho ligado na tomada, de pé, com a tela para a galera.</li>'+
     '<li>O jogo mantém a tela acesa e toca o alarme pelo alto-falante.</li>'+
     '<li>Se a tela apagar mesmo assim, o jogo tenta continuar tocando em segundo plano. Funciona na maioria dos Android; no iPhone, não é garantido.</li></ul>'+
     '<div class="acoes"><button class="btn sec mini" data-a="permitir">Permitir notificações</button><button class="btn sec mini" data-a="teste-som">Testar o alarme</button></div>'+
     '<label class="nota"><input type="checkbox" id="teste" '+(s.teste?"checked":"")+'> Modo teste: intervalos de 20 a 35 segundos</label></section>'+
-  '<section class="acoes"><button class="btn largo" data-a="comecar"'+(pode?"":" disabled")+'>Começar a resenha</button>'+(pode?'':'<p class="nota">Coloque pelo menos 2 nomes.</p>')+'</section>'+
+  '<section class="acoes"><button class="btn largo" data-a="comecar"'+(pode?"":" disabled")+'>Bora começar!</button>'+(pode?'':'<p class="nota">Coloque pelo menos 2 nomes.</p>')+'</section>'+
   '<section class="acoes"><button class="btn sec mini" data-a="ver-album">Ver fotos guardadas</button></section>';
 }
 function telaInicio(){
   const u=UNIDADES[s.unidade][0], sem=s.jogadores.filter(p=>p.sem&&p.nome.trim()).map(p=>p.nome.trim());
-  return topo()+'<section class="bloco"><p class="rotulo">Abertura</p><h2 class="chamada">Foto oficial da resenha</h2>'+
+  return topo()+'<section class="bloco"><p class="rotulo">Abertura</p><h2 class="chamada">Primeiro, a <u>foto oficial</u></h2>'+
     '<p>Todo mundo junto na foto, e depois o primeiro '+u+' da noite.'+(sem.length?' '+esc(lista(sem))+' com água ou refri.':'')+'</p></section>'+
     '<section class="acoes"><button class="btn largo" data-a="foto-abertura">Abrir a câmera</button><button class="btn sec" data-a="pular-abertura">Pular a foto</button></section>';
 }
@@ -415,7 +416,7 @@ function telaAlarme(){
     '<p>'+(a.agua?"Todo mundo bebe um copo de água.":"Todo mundo bebe 1 "+esc(u)+"."+(sem.length?" "+esc(lista(sem))+": água ou refri.":""))+'</p>'+
     (tocando?'<button class="btn" style="background:#fff;color:#111" data-a="parar">Parar o alarme</button>':'')+'</section>'+
     (a.escolhido===null&&a.opcoes?
-      '<section class="bloco"><p class="rotulo">Escolham a foto da rodada</p>'+
+      '<section class="bloco"><p class="rotulo">Qual vai ser?</p>'+
       '<button class="desafio opcao-pose" data-a="escolher" data-k="0">'+cartaPose(a.opcoes[0])+'</button>'+
       '<p class="ou">ou</p>'+
       '<button class="desafio opcao-pose" data-a="escolher" data-k="1">'+cartaPose(a.opcoes[1])+'</button>'+
