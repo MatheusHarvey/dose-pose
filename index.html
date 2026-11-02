@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121012">
+<title>Dose & Pose</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Karla:wght@400;600;800&family=DM+Mono:wght@500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* Layout: corpo de câmera descartável à noite. Uma coluna central; o contador é o herói; o flash amarelo marca ação. */
+:root{
+  --noite:#121012; --corpo:#1D1A1D; --corpo-2:#2A262A; --linha:rgba(246,239,228,.14);
+  --papel:#F6EFE4; --suave:#B3A99D; --flash:#FFD23F; --flash-tinta:#1B1505;
+  --alarme:#FF4D3D; --agua:#4FC3F7;
+  --f-cartaz:"Bowlby One","Arial Black",Impact,sans-serif;
+  --f-texto:"Karla","Helvetica Neue",Arial,sans-serif;
+  --f-num:"DM Mono","Courier New",monospace;
+  color-scheme:dark;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html,body{background:var(--noite);color:var(--papel)}
+body{margin:0;font-family:var(--f-texto);font-size:17px;line-height:1.45}
+h1,h2,h3,p,ul{margin:0}
+ul{padding:0;list-style:none}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--flash);outline-offset:2px}
+[hidden]{display:none!important}
+
+.app{max-width:620px;margin-inline:auto;padding-inline:16px;padding-block:16px 48px;display:grid;gap:22px}
+.topo{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.marca{font-family:var(--f-cartaz);font-weight:400;font-size:30px;line-height:1;letter-spacing:.01em}
+.marca b{color:var(--flash);font-weight:400}
+.chip{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--linha);border-radius:999px;padding:4px 10px;color:var(--suave);white-space:nowrap}
+.bloco{display:grid;gap:12px;min-width:0}
+.rotulo{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--suave)}
+.nota{font-size:14.5px;color:var(--suave)}
+.chamada{font-family:var(--f-cartaz);font-weight:400;font-size:clamp(28px,7.5vw,40px);line-height:1.05;text-wrap:balance}
+.cartao{background:var(--corpo);border:1px solid var(--linha);border-radius:18px;padding:18px;display:grid;gap:14px;min-width:0}
+
+.btn{background:var(--flash);color:var(--flash-tinta);border:0;border-radius:14px;font-weight:800;font-size:18px;padding:14px 20px;min-height:54px}
+.btn.sec{background:transparent;color:var(--papel);border:1.5px solid var(--linha)}
+.btn.mini{font-size:14px;padding:7px 12px;min-height:38px;border-radius:10px}
+.btn.alerta{background:var(--alarme);color:#fff}
+.btn.largo{width:100%}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.acoes{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{background:transparent;border:1.5px solid var(--linha);border-radius:999px;padding:8px 14px;font-weight:800;font-size:15px;min-height:42px}
+.seg button[aria-pressed="true"]{background:var(--papel);color:var(--noite);border-color:var(--papel)}
+
+input[type=text]{background:var(--corpo-2);border:1.5px solid var(--linha);border-radius:12px;padding:11px 12px;min-height:48px;width:100%;min-width:0}
+.jogadores{display:grid;gap:8px}
+.jogadores li{display:flex;gap:8px;align-items:center}
+.jogadores li input{flex:1 1 auto}
+.sem{font-size:13px;font-weight:800;border-radius:999px;padding:7px 11px;border:1.5px solid var(--linha);background:transparent;white-space:nowrap;min-height:40px}
+.sem[aria-pressed="true"]{border-color:var(--agua);color:var(--agua)}
+.novo{display:flex;gap:8px}
+.marca-ok{display:flex;gap:10px;align-items:center;font-weight:700;min-height:40px}
+.marca-ok input{width:22px;height:22px;accent-color:var(--flash)}
+.novo input{flex:1 1 auto}
+
+/* Contador */
+.relogio{display:grid;justify-items:center;gap:6px;padding:26px 10px;text-align:center}
+.relogio .tempo{font-family:var(--f-num);font-weight:500;font-size:clamp(76px,24vw,132px);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.relogio .quando{font-size:16px;color:var(--suave)}
+.relogio .quando b{color:var(--papel)}
+.barra{width:100%;height:8px;border-radius:99px;background:var(--corpo-2);overflow:hidden}
+.barra i{display:block;height:100%;background:var(--flash);border-radius:99px;transition:width .5s linear}
+.status{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.status .ok{color:#7BD88F;border-color:rgba(123,216,143,.5)}
+.status .mal{color:var(--alarme);border-color:rgba(255,77,61,.5)}
+
+/* Alarme */
+.alarme{background:var(--alarme);color:#fff;border-radius:22px;padding:26px 20px;display:grid;gap:12px;text-align:center;justify-items:center}
+.alarme.agua{background:var(--agua);color:#06202B}
+.alarme .grito{font-family:var(--f-cartaz);font-size:clamp(40px,12vw,64px);line-height:.95}
+.tocando .alarme{animation:pisca .9s steps(2) infinite}
+@keyframes pisca{50%{filter:brightness(1.25)}}
+@media (prefers-reduced-motion:reduce){.tocando .alarme{animation:none}}
+.desafio{background:var(--papel);color:var(--noite);border-radius:18px;padding:22px 20px;display:grid;gap:8px}
+.desafio .quem{font-family:var(--f-cartaz);font-size:clamp(30px,9vw,46px);line-height:1}
+.desafio .oque{font-size:22px;font-weight:800;line-height:1.25;text-wrap:balance}
+.desafio .rotulo{color:#6B6158}
+.opcao-pose{border:3px solid transparent;text-align:left;width:100%;font:inherit;cursor:pointer}
+.opcao-pose:hover,.opcao-pose:focus-visible{border-color:var(--flash)}
+.ou{text-align:center;font-family:var(--f-cartaz);font-size:22px;color:var(--suave);line-height:1}
+.btn.ambos{font-family:var(--f-cartaz);font-weight:400;font-size:26px;letter-spacing:.02em;min-height:64px}
+
+/* Câmera */
+.camera{position:fixed;inset:0;background:#000;z-index:20;display:grid;grid-template-rows:auto 1fr auto;padding:calc(env(safe-area-inset-top,0px) + 10px) 12px calc(env(safe-area-inset-bottom,0px) + 14px)}
+.camera .lente{position:relative;min-height:0;height:100%;display:grid;place-items:center;overflow:hidden;border-radius:14px}
+.camera video,.camera img{max-width:100%;max-height:100%;aspect-ratio:4/5;object-fit:cover;width:100%;border-radius:14px;background:#111}
+.camera video.espelho{transform:scaleX(-1)}
+.camera .lente img{position:absolute;inset:0;width:100%;height:100%;max-height:none;aspect-ratio:auto;object-fit:contain;border-radius:0;background:transparent}
+.camera .faixa{color:#fff;font-weight:800;text-align:center;padding:6px 8px 12px;font-size:16px}
+.camera .faixa b{color:var(--flash)}
+.contagem{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-cartaz);font-size:min(46vw,260px);color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.6);pointer-events:none}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.flash.on{animation:flash .5s ease-out}
+@keyframes flash{0%{opacity:1}100%{opacity:0}}
+.camera .acoes{justify-content:center;padding-top:12px}
+
+/* Álbum */
+.album{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.album button{padding:0;border:0;background:none;border-radius:10px;overflow:hidden;aspect-ratio:4/5}
+.album img{width:100%;height:100%;object-fit:cover;display:block}
+.veu{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:30;display:grid;grid-template-rows:1fr auto;padding:16px;gap:12px}
+.veu img{max-width:100%;max-height:100%;margin:auto;border-radius:6px;display:block}
+.veu .acoes{justify-content:center}
+.regras{display:grid;gap:8px;font-size:15.5px}
+.regras li{padding-left:18px;position:relative}
+.regras li::before{content:"";position:absolute;left:0;top:.55em;width:8px;height:8px;border-radius:50%;background:var(--flash)}
+.historico li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--linha);font-size:15px}
+.historico li span:last-child{color:var(--suave);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div id="camera" class="camera" hidden></div>
+<div id="veu" class="veu" hidden></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- Desafios ({n} = nome sorteado) ---------------- */
+const POSES=[
+"{n} de olhos fechados","{n} fazendo o 4 com a perna","{n} como a Estátua da Liberdade","{n} na pose de corrida do Naruto",
+"{n} como o Poderoso Chefão, com um charuto de mentira","{n} soltando um Hadouken","{n} carregando um Kamehameha",
+"{n} na pose de vitória de lutador de videogame","{n} aplicando um Fatality em alguém da foto","{n} levando um golpe em câmera lenta",
+"{n} como O Pensador","{n} imitando a Mona Lisa","{n} imitando o Cristo Redentor","{n} como estátua grega",
+"{n} como se tivesse acabado de ganhar na Mega-Sena","{n} defendendo um pênalti","{n} comemorando gol de final de campeonato",
+"{n} na pose de super-herói pousando","{n} com cara de quem chupou limão","{n} como modelo de revista olhando para o horizonte",
+"{n} apontando dramaticamente para alguém da foto","{n} com cara de quem viu um fantasma","{n} chorando como em novela mexicana",
+"{n} na pose do Titanic, com alguém atrás","{n} dormindo no ombro de alguém","{n} como em comercial de margarina",
+"{n} com cara de foto 3x4 de documento","{n} como DJ no auge da festa","{n} tocando guitarra imaginária",
+"{n} levantando um troféu imaginário","{n} como ninja escondido atrás de alguém","{n} jogando beijo para a câmera",
+"{n} como zumbi","{n} de braços cruzados, com cara de vilão","{n} na pose do moonwalk","{n} imitando um flamingo",
+"{n} segurando o mundo nas costas","{n} usando um objeto da mesa como chapéu","{n} como apresentador de telejornal",
+"{n} na pose de capa de disco, olhando por cima do ombro","{n} como capivara: imóvel e em paz","{n} fazendo coração com as mãos",
+"{n} como mágico tirando coelho da cartola","{n} como quem acabou de vencer uma maratona","{n} como paparazzi fotografando a galera",
+"{n} de costas para a câmera, como se tivesse brigado com todo mundo","{n} fazendo o sinal da paz com cara séria",
+"{n} discursando como político em palanque","{n} como se estivesse congelando de frio","{n} posando de goleador com a bola no pé (pode ser imaginária)",
+"{n} como garçom servindo a galera","{n} dando um soco em câmera lenta em alguém","{n} na pose clássica de lutador antes do Round 1",
+"{n} dentro de uma moldura feita com as mãos","{n} olhando para o lado errado, só ele","{n} como vencedor do Oscar agradecendo"
+];
+const MAIS=[
+"{n} como ator de novela recebendo a notícia da traição","{n} fazendo a dança do robô","{n} como surfista pegando onda no sofá",
+"{n} como jogador de vôlei cortando a bola","{n} como gamer que acabou de perder a partida","{n} como influencer gravando stories",
+"{n} como estátua viva de praça","{n} fingindo ser segurança de alguém da foto","{n} como cantor sertanejo no refrão",
+"{n} com o microfone imaginário, no karaokê da vida","{n} carregando alguém nas costas, de mentirinha (só na pose)","{n} fazendo careta de bebê",
+"{n} como se estivesse num quadro renascentista","{n} como meme do 'é sobre isso'","{n} imitando um pinguim",
+"{n} como tiozão do churrasco segurando o espeto","{n} fingindo dormir em pé","{n} como lutador de sumô",
+"{n} fazendo continência como soldado","{n} como turista tirando foto da galera","{n} imitando a pose de Rocky Balboa no topo da escada",
+"{n} como Darth Vader usando a Força para enforcar alguém da foto","{n} sendo enforcado pela Força do Darth Vader","{n} defendendo um golpe com os braços cruzados","{n} sendo o 'Player 2' que acabou de entrar",
+"{n} como chefe final de videogame","{n} pedindo pausa para todo mundo, como técnico de vôlei","{n} como se estivesse num desfile de Carnaval",
+"{n} sambando","{n} imitando o Silvio Santos","{n} como garota-propaganda segurando um produto da mesa",
+"{n} beijando a própria mão como galã","{n} chorando de rir, mesmo sem motivo","{n} tirando selfie com a câmera de mentira",
+"{n} rendido, com as mãos para cima","{n} como detetive investigando alguém da foto com lupa imaginária","{n} fazendo pose de ioga impossível"
+];
+const PETS=[
+"{n} com o pet no colo, os dois olhando para a câmera","{n} colocando óculos de sol na testa do pet","{n} e o pet fazendo a mesma cara",
+"{n} segurando o pet como o Simba no Rei Leão (com cuidado)","{n} apresentando o pet como troféu","{n} cochichando um segredo no ouvido do pet",
+"{n} imitando a pose do pet","{n} e o pet como casal de foto de casamento","{n} oferecendo um brinde ao pet (o pet não bebe!)",
+"{n} fingindo que o pet é o chefe da festa","{n} de quatro, imitando o pet ao lado dele","{n} com o pet no ombro, se o pet topar"
+];
+const FUMO=[
+"{n} como galã de filme noir com o cigarro na mão","{n} como Poderoso Chefão de verdade, cigarro ou charuto na mão",
+"{n} com o cigarro atrás da orelha, como malandro de bar","{n} soltando a fumaça com cara de filósofo","{n} acendendo o cigarro de outra pessoa como em filme antigo",
+"{n} pensativo na janela com o cigarro, como capa de disco"
+];
+const AGUA=[
+"Todo mundo brindando com água, com cara de champanhe","Todo mundo hidratado, fazendo pose de atleta",
+"Brinde de água com o mindinho levantado","Todo mundo com o copo de água na cabeça (cuidado)"
+];
+const UNIDADES={gole:["gole","goles"],copo:["copo","copos"],dose:["dose","doses"]};
+
+/* ---------------- utilidades ---------------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const sorte=n=>Math.floor(Math.random()*n);
+const hh=t=>new Date(t).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+const guardar=()=>{try{localStorage.setItem("dose-e-pose-v1",JSON.stringify(s));}catch(e){}};
+const abrir=()=>{try{return JSON.parse(localStorage.getItem("dose-e-pose-v1")||"null");}catch(e){return null;}};
+const lista=n=>n.length<2?n.join(""):n.slice(0,-1).join(", ")+" e "+n[n.length-1];
+
+/* ---------------- fotos no aparelho (IndexedDB) ---------------- */
+let dbP=null;
+function db(){ if(!dbP) dbP=new Promise((ok,erro)=>{const r=indexedDB.open("dose-e-pose",1);r.onupgradeneeded=()=>r.result.createObjectStore("fotos",{keyPath:"id"});r.onsuccess=()=>ok(r.result);r.onerror=()=>erro(r.error);}); return dbP; }
+async function salvarFoto(f){const d=await db();return new Promise((ok,erro)=>{const t=d.transaction("fotos","readwrite");t.objectStore("fotos").put(f);t.oncomplete=ok;t.onerror=()=>erro(t.error);});}
+async function fotos(){try{const d=await db();return await new Promise((ok,erro)=>{const r=d.transaction("fotos").objectStore("fotos").getAll();r.onsuccess=()=>ok(r.result.sort((a,b)=>a.id-b.id));r.onerror=()=>erro(r.error);});}catch(e){return [];}}
+async function apagarFotos(){const d=await db();return new Promise(ok=>{const t=d.transaction("fotos","readwrite");t.objectStore("fotos").clear();t.oncomplete=ok;});}
+
+/* ---------------- estado ---------------- */
+let s=abrir()||{escolha:true,pets:false,fumo:false,fase:"config",jogadores:[{nome:"Harvey",sem:false},{nome:"",sem:false},{nome:"",sem:false}],unidade:"gole",aguaCada:4,limite:12,teste:false,
+  rodada:0,proximo:null,inicioEspera:null,atual:null,historico:[]};
+
+function poses(){ return POSES.concat(MAIS, s.pets?PETS:[], s.pets?PETS:[], s.fumo?FUMO:[]); }
+function intervalo(){ return s.teste ? (20+sorte(16))*1000 : (11+sorte(10))*60000; }
+function nomes(){ return s.jogadores.filter(p=>p.nome.trim()).map(p=>p.nome.trim()); }
+function sortearOpcoes(){
+  const js=nomes(), pp=poses();
+  const q1=js[sorte(js.length)]; let q2=js[sorte(js.length)];
+  if(js.length>1) while(q2===q1) q2=js[sorte(js.length)];
+  const p1=pp[sorte(pp.length)]; let p2=pp[sorte(pp.length)]; let g=0;
+  while(p2===p1&&g++<20) p2=pp[sorte(pp.length)];
+  const op=(q,pz)=>({quem:q,resto:pz.replace("{n}","").trim(),txt:pz.replace("{n}",q)});
+  return s.escolha?[op(q1,p1),op(q2,p2)]:[op(q1,p1)];
+}
+function novaRodada(){
+  s.rodada++;
+  const agua=s.aguaCada>0&&s.rodada%s.aguaCada===0;
+  s.atual={n:s.rodada,agua,hora:Date.now(),trocou:false,quem:null,txt:"",opcoes:null,escolhido:null};
+  if(agua&&Math.random()<.5){ s.atual.txt=AGUA[sorte(AGUA.length)]; s.atual.escolhido="grupo"; }
+  else { s.atual.opcoes=sortearOpcoes(); if(s.atual.opcoes.length===1) escolher(0); }
+}
+function escolher(k){
+  const a=s.atual, o=a.opcoes; a.escolhido=k;
+  if(k==="ambos"){ a.txt=o[0].txt+" + "+o[1].txt; a.quem=null; }
+  else { a.txt=o[k].txt; a.quem=o[k].quem; }
+}
+function cartaPose(o){ return '<p class="quem">'+esc(o.quem)+'</p><p class="oque">'+esc(o.resto)+'</p>'; }
+function agendar(){
+  if(s.limite&&s.rodada>=s.limite){ s.fase="fim"; s.proximo=null; return; }
+  s.inicioEspera=Date.now(); s.proximo=s.inicioEspera+intervalo(); s.fase="espera";
+  atualizarSessao();
+}
+
+/* ---------------- som: manter vivo + alarme ---------------- */
+function wav(segundos,gerar){
+  const sr=22050,n=Math.floor(sr*segundos),buf=new ArrayBuffer(44+n*2),v=new DataView(buf);
+  const w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i));};
+  w(0,"RIFF");v.setUint32(4,36+n*2,true);w(8,"WAVE");w(12,"fmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,"data");v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++)v.setInt16(44+i*2,Math.max(-1,Math.min(1,gerar(i/sr)))*32767,true);
+  return URL.createObjectURL(new Blob([buf],{type:"audio/wav"}));
+}
+const SOM_SILENCIO=wav(2,t=>Math.sin(t*2*Math.PI*40)*0.0006);
+const SOM_ALARME=wav(2.4,t=>{
+  const notas=[[0,.18,880],[.22,.18,1175],[.44,.18,1568],[.66,.32,1175],[1.2,.18,880],[1.42,.18,1175],[1.64,.18,1568],[1.86,.32,1175]];
+  let x=0; for(const [a,d,f] of notas){ if(t>=a&&t<a+d){const e=Math.min(1,(t-a)*60,(a+d-t)*30); x+=Math.sin(2*Math.PI*f*t)*.55*e+Math.sin(2*Math.PI*f*2*t)*.12*e;} } return x;
+});
+const SOM_CLIQUE=wav(.12,t=>(Math.random()*2-1)*Math.exp(-t*60)*.8);
+const audio=new Audio(); audio.loop=true; audio.preload="auto"; audio.setAttribute("playsinline","");
+let modoAudio=null;
+function tocar(qual){
+  if(modoAudio===qual&&!audio.paused) return;
+  modoAudio=qual; audio.src=qual==="alarme"?SOM_ALARME:SOM_SILENCIO; audio.volume=1;
+  const p=audio.play(); if(p&&p.catch) p.catch(()=>{modoAudio=null;desenharStatus();});
+}
+function parar(){ audio.pause(); modoAudio=null; }
+function clique(){ try{const a=new Audio(SOM_CLIQUE);a.play().catch(()=>{});}catch(e){} }
+function atualizarSessao(){
+  if(!("mediaSession" in navigator)) return;
+  try{
+    navigator.mediaSession.metadata=new MediaMetadata({title:s.fase==="alarme"?"HORA DA DOSE!":"Dose & Pose",
+      artist:s.fase==="espera"&&s.proximo?"Próxima rodada às "+hh(s.proximo):"Rodada "+s.rodada,album:"Dose & Pose"});
+    navigator.mediaSession.setActionHandler("pause",()=>{ if(s.fase==="alarme") pararAlarme(); });
+  }catch(e){}
+}
+
+/* tela acesa */
+let trava=null;
+async function manterTela(){ if(trava||!("wakeLock" in navigator)) return; try{trava=await navigator.wakeLock.request("screen");trava.addEventListener("release",()=>{trava=null;desenharStatus();});}catch(e){} desenharStatus(); }
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"){ if(s.fase==="espera"||s.fase==="alarme") manterTela(); checar(); } });
+
+/* notificação (quando o navegador deixar) */
+let swReg=null;
+if("serviceWorker" in navigator&&location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").then(r=>{swReg=r;}).catch(()=>{}); }
+function notificar(){
+  if(!("Notification" in window)||Notification.permission!=="granted") return;
+  const t="Hora da rodada "+s.rodada+"!", o={body:s.atual?s.atual.txt:"",tag:"dose",renotify:true,requireInteraction:true,vibrate:[400,200,400]};
+  try{ if(swReg) swReg.showNotification(t,o); else new Notification(t,o); }catch(e){}
+}
+
+/* ---------------- relógio ---------------- */
+function checar(){
+  if(s.fase==="espera"&&s.proximo&&Date.now()>=s.proximo){
+    const atraso=Date.now()-s.proximo;
+    novaRodada(); s.atual.atraso=atraso>60000?Math.round(atraso/60000):0;
+    s.fase="alarme"; guardar(); atualizarSessao(); tocar("alarme"); notificar();
+    if(navigator.vibrate){try{navigator.vibrate([500,250,500,250,500]);}catch(e){}}
+    desenhar(); return;
+  }
+  if(s.fase==="espera") desenharRelogio();
+}
+setInterval(checar,500);
+function pararAlarme(){ if(modoAudio==="alarme") tocar("silencio"); s.atual.parado=true; guardar(); desenhar(); }
+
+/* ---------------- câmera ---------------- */
+let fluxo=null, frente=true, ultimaFoto=null;
+async function abrirCamera(titulo,legenda){
+  const cam=$("#camera"); cam.hidden=false;
+  cam.innerHTML='<p class="faixa">'+titulo+'</p><div class="lente"><video id="video" playsinline muted autoplay class="espelho"></video><div class="contagem" id="contagem"></div><div class="flash" id="flash"></div></div>'+
+    '<div class="acoes" id="cam-acoes"><button class="btn" data-a="disparar">Tirar em 5 s</button><button class="btn sec" data-a="disparar-ja">Agora</button><button class="btn sec mini" data-a="virar">Virar câmera</button><button class="btn sec mini" data-a="cam-fechar">Fechar</button></div>'+
+    '<input type="file" id="arquivo" accept="image/*" capture="user" hidden>';
+  cam.dataset.legenda=legenda;
+  await ligarCamera();
+}
+async function ligarCamera(){
+  if(fluxo){fluxo.getTracks().forEach(t=>t.stop());fluxo=null;}
+  const v=$("#video");
+  try{
+    fluxo=await navigator.mediaDevices.getUserMedia({video:{facingMode:frente?"user":"environment",width:{ideal:1920},height:{ideal:1920}},audio:false});
+    v.srcObject=fluxo; v.classList.toggle("espelho",frente);
+  }catch(e){
+    $("#cam-acoes").innerHTML='<p class="faixa">Não consegui abrir a câmera aqui. Use a câmera do aparelho:</p><button class="btn" data-a="arquivo">Tirar com a câmera do celular</button><button class="btn sec mini" data-a="cam-fechar">Fechar</button>';
+  }
+}
+function fecharCamera(){ if(fluxo){fluxo.getTracks().forEach(t=>t.stop());fluxo=null;} $("#camera").hidden=true; $("#camera").innerHTML=""; }
+async function disparar(espera){
+  const c=$("#contagem"), acoes=$("#cam-acoes"); acoes.style.visibility="hidden";
+  for(let k=espera;k>0;k--){ c.textContent=k; clique(); await new Promise(r=>setTimeout(r,1000)); }
+  c.textContent="";
+  const v=$("#video"); const f=$("#flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on");
+  await moldurar(v,v.videoWidth,v.videoHeight,!frente?false:false);
+  acoes.style.visibility="visible";
+}
+async function deArquivo(file){
+  const img=new Image(); img.src=URL.createObjectURL(file); await img.decode();
+  await moldurar(img,img.naturalWidth,img.naturalHeight,false);
+}
+function quebrar(ctx,txt,larg){const ps=txt.split(" "),ls=[];let l="";for(const p of ps){const t=l?l+" "+p:p;if(ctx.measureText(t).width>larg&&l){ls.push(l);l=p;}else l=t;}if(l)ls.push(l);return ls;}
+async function moldurar(fonte,w,h){
+  try{await Promise.all(['800 40px Karla','500 28px "DM Mono"','34px "Bowlby One"'].map(f=>document.fonts.load(f)));}catch(e){}
+  const W=1080,H=1350,M=48,FW=W-2*M,FH=FW*5/4,cv=document.createElement("canvas");cv.width=W;cv.height=H+190;
+  const x=cv.getContext("2d"); x.fillStyle="#F6EFE4"; x.fillRect(0,0,cv.width,cv.height);
+  const alvo=FW/FH, r=w/h; let sw=w,sh=h,sx=0,sy=0; if(r>alvo){sw=h*alvo;sx=(w-sw)/2;}else{sh=w/alvo;sy=(h-sh)/2;}
+  x.drawImage(fonte,sx,sy,sw,sh,M,M,FW,FH);
+  const leg=JSON.parse($("#camera").dataset.legenda||"{}");
+  x.fillStyle="#121012"; x.font='800 36px Karla, Arial, sans-serif';
+  let y=M+FH+58; quebrar(x,leg.txt||"",FW).slice(0,3).forEach(l=>{x.fillText(l,M,y);y+=44;});
+  x.fillStyle="#6B6158"; x.font='500 28px "DM Mono", monospace';
+  x.fillText(leg.rodape||"",M,cv.height-46);
+  x.textAlign="right"; x.fillStyle="#C9302C"; x.font='400 34px "Bowlby One", Impact, sans-serif'; x.fillText("DOSE & POSE",W-M,cv.height-42); x.textAlign="left";
+  const blob=await new Promise(ok=>cv.toBlob(ok,"image/jpeg",.9));
+  ultimaFoto={blob,url:URL.createObjectURL(blob)};
+  const cam=$("#camera");
+  cam.querySelector(".lente").innerHTML='<img src="'+ultimaFoto.url+'" alt="Foto tirada">';
+  $("#cam-acoes").innerHTML='<button class="btn" data-a="foto-ok">Ficou boa</button><button class="btn sec" data-a="foto-denovo">Tirar de novo</button>';
+}
+async function guardarUltima(){
+  const leg=JSON.parse($("#camera").dataset.legenda||"{}");
+  await salvarFoto({id:Date.now(),rodada:leg.rodada,txt:leg.txt,hora:Date.now(),blob:ultimaFoto.blob});
+  fecharCamera();
+}
+
+/* ---------------- telas ---------------- */
+function topo(){ return '<header class="topo"><h1 class="marca">Dose <b>&amp;</b> Pose</h1>'+(s.rodada?'<span class="chip">Rodada '+s.rodada+(s.limite?' de '+s.limite:'')+'</span>':'')+'</header>'; }
+function seg(a,ops,atual){return '<div class="seg">'+ops.map(o=>'<button data-a="'+a+'" data-v="'+o[0]+'" aria-pressed="'+(String(atual)===String(o[0]))+'">'+o[1]+'</button>').join("")+'</div>';}
+function telaConfig(){
+  const pode=nomes().length>=2;
+  return topo()+
+  '<section class="bloco"><h2 class="chamada">Bebe, posa, guarda a memória.</h2><p class="nota">De 11 a 20 minutos o alarme toca: todo mundo bebe, alguém é sorteado para uma pose e a foto sai na hora. As fotos ficam só neste aparelho.</p></section>'+
+  '<section class="cartao"><p class="rotulo">Quem está na resenha</p><ul class="jogadores">'+s.jogadores.map((p,i)=>
+    '<li><input type="text" id="j-'+i+'" data-j="'+i+'" value="'+esc(p.nome)+'" placeholder="Nome" maxlength="18" autocomplete="off" aria-label="Jogador '+(i+1)+'">'+
+    '<button class="sem" data-a="sem" data-i="'+i+'" aria-pressed="'+p.sem+'">Sem álcool</button>'+
+    '<button class="btn sec mini" data-a="tirar" data-i="'+i+'" aria-label="Tirar">✕</button></li>').join("")+'</ul>'+
+    '<div class="acoes"><button class="btn sec mini" data-a="mais">Adicionar pessoa</button></div>'+
+    '<p class="nota">"Sem álcool" bebe água ou refri nas rodadas e entra no sorteio de poses normalmente.</p></section>'+
+  '<section class="cartao"><p class="rotulo">Cada rodada vale</p>'+seg("unidade",[["gole","1 gole"],["copo","1 copo"],["dose","1 dose"]],s.unidade)+
+    '<p class="rotulo">Rodada da água</p>'+seg("agua",[[3,"A cada 3"],[4,"A cada 4"],[5,"A cada 5"],[0,"Sem"]],s.aguaCada)+
+    '<p class="rotulo">Foto da rodada</p>'+seg("escolha",[[1,"Escolher entre duas"],[0,"Uma pose sorteada"]],s.escolha?1:0)+
+    '<p class="nota">'+(s.escolha?"A cada rodada aparecem duas poses com pessoas diferentes, e a galera escolhe uma, ou as duas.":"A cada rodada sai uma pose só.")+'</p>'+
+    '<p class="rotulo">No recinto</p><label class="marca-ok"><input type="checkbox" id="pets" '+(s.pets?"checked":"")+'> Há animais no recinto</label>'+
+    '<label class="marca-ok"><input type="checkbox" id="fumo" '+(s.fumo?"checked":"")+'> Há fumantes no recinto</label>'+
+    '<p class="nota">Cada marcação libera poses extras: com o pet, ou com cigarro na mão. Total de poses: <b id="total-poses">'+new Set(poses()).size+'</b>.</p>'+
+    '<p class="rotulo">Limite da noite</p>'+seg("limite",[[8,"8 rodadas"],[12,"12"],[16,"16"],[0,"Sem limite"]],s.limite)+
+    '<p class="nota">'+(s.limite?"Com intervalos de 11 a 20 min, "+s.limite+" rodadas dão umas "+Math.round(s.limite*15.5/60*2)/2+" horas.":"Sem limite, o jogo só acaba quando vocês encerrarem.")+'</p></section>'+
+  '<section class="cartao"><p class="rotulo">Para o alarme tocar</p><ul class="regras">'+
+    '<li>Deixe este aparelho ligado na tomada, de pé, com a tela para a galera.</li>'+
+    '<li>O jogo mantém a tela acesa e toca o alarme pelo alto-falante.</li>'+
+    '<li>Se a tela apagar mesmo assim, o jogo tenta continuar tocando em segundo plano. Funciona na maioria dos Android; no iPhone, não é garantido.</li></ul>'+
+    '<div class="acoes"><button class="btn sec mini" data-a="permitir">Permitir notificações</button><button class="btn sec mini" data-a="teste-som">Testar o alarme</button></div>'+
+    '<label class="nota"><input type="checkbox" id="teste" '+(s.teste?"checked":"")+'> Modo teste: intervalos de 20 a 35 segundos</label></section>'+
+  '<section class="acoes"><button class="btn largo" data-a="comecar"'+(pode?"":" disabled")+'>Começar a resenha</button>'+(pode?'':'<p class="nota">Coloque pelo menos 2 nomes.</p>')+'</section>'+
+  '<section class="acoes"><button class="btn sec mini" data-a="ver-album">Ver fotos guardadas</button></section>';
+}
+function telaInicio(){
+  const u=UNIDADES[s.unidade][0], sem=s.jogadores.filter(p=>p.sem&&p.nome.trim()).map(p=>p.nome.trim());
+  return topo()+'<section class="bloco"><p class="rotulo">Abertura</p><h2 class="chamada">Foto oficial da resenha</h2>'+
+    '<p>Todo mundo junto na foto, e depois o primeiro '+u+' da noite.'+(sem.length?' '+esc(lista(sem))+' com água ou refri.':'')+'</p></section>'+
+    '<section class="acoes"><button class="btn largo" data-a="foto-abertura">Abrir a câmera</button><button class="btn sec" data-a="pular-abertura">Pular a foto</button></section>';
+}
+function desenharStatus(){
+  const el=$("#status"); if(!el) return;
+  const tela=trava?'<span class="chip ok">Tela acesa</span>':'<span class="chip mal">Tela pode apagar</span>';
+  const som=modoAudio?'<span class="chip ok">Alarme armado</span>':'<span class="chip mal">Toque na tela para armar o som</span>';
+  const not=("Notification" in window)&&Notification.permission==="granted"?'<span class="chip ok">Notificação ligada</span>':'';
+  el.innerHTML=tela+som+not;
+}
+function desenharRelogio(){
+  const t=$("#tempo"); if(!t||!s.proximo) return;
+  const falta=Math.max(0,s.proximo-Date.now()), m=Math.floor(falta/60000), sg=Math.floor(falta%60000/1000);
+  t.textContent=String(m).padStart(2,"0")+":"+String(sg).padStart(2,"0");
+  const tot=s.proximo-s.inicioEspera; $("#progresso").style.width=Math.min(100,100*(1-falta/tot))+"%";
+}
+function telaEspera(){
+  const prox=s.rodada+1, agua=s.aguaCada>0&&prox%s.aguaCada===0;
+  return topo()+'<section class="cartao relogio"><p class="rotulo">Próxima rodada'+(agua?' · é rodada da água':'')+'</p><p class="tempo" id="tempo">--:--</p>'+
+    '<p class="quando">O alarme toca às <b>'+hh(s.proximo)+'</b></p><div class="barra"><i id="progresso"></i></div><div class="status" id="status"></div></section>'+
+    '<p class="nota" style="text-align:center">O tempo de cada rodada é sorteado entre '+(s.teste?'20 e 35 segundos (modo teste)':'11 e 20 minutos')+'. Deixe esta tela aberta.</p>'+
+    (s.historico.length?'<section class="cartao"><p class="rotulo">Até agora</p><ul class="historico">'+s.historico.slice().reverse().map(h=>'<li><span>'+esc(h.txt)+'</span><span>'+hh(h.hora)+'</span></li>').join("")+'</ul></section>':'')+
+    '<section class="acoes"><button class="btn sec mini" data-a="ver-album">Ver fotos</button><button class="btn sec mini" data-a="adiantar">Tocar agora</button><button class="btn sec mini" data-a="encerrar">Encerrar a noite</button></section>';
+}
+function telaAlarme(){
+  const a=s.atual, u=UNIDADES[s.unidade][0], tocando=modoAudio==="alarme";
+  const sem=s.jogadores.filter(p=>p.sem&&p.nome.trim()).map(p=>p.nome.trim());
+  return topo()+'<section class="alarme'+(a.agua?" agua":"")+'"><p class="rotulo" style="color:inherit">Rodada '+a.n+(a.atraso?' · tocou com '+a.atraso+' min de atraso':'')+'</p>'+
+    '<p class="grito">'+(a.agua?"Rodada da água!":"Hora do "+esc(u)+"!")+'</p>'+
+    '<p>'+(a.agua?"Todo mundo bebe um copo de água.":"Todo mundo bebe 1 "+esc(u)+"."+(sem.length?" "+esc(lista(sem))+": água ou refri.":""))+'</p>'+
+    (tocando?'<button class="btn" style="background:#fff;color:#111" data-a="parar">Parar o alarme</button>':'')+'</section>'+
+    (a.escolhido===null&&a.opcoes?
+      '<section class="bloco"><p class="rotulo">Escolham a foto da rodada</p>'+
+      '<button class="desafio opcao-pose" data-a="escolher" data-k="0">'+cartaPose(a.opcoes[0])+'</button>'+
+      '<p class="ou">ou</p>'+
+      '<button class="desafio opcao-pose" data-a="escolher" data-k="1">'+cartaPose(a.opcoes[1])+'</button>'+
+      '<button class="btn largo ambos" data-a="escolher" data-k="ambos">Ambos!</button></section>'+
+      '<section class="acoes">'+(a.trocou?'':'<button class="btn sec" data-a="trocar">Sortear outras duas</button>')+'<button class="btn sec" data-a="sem-foto">Seguir sem foto</button></section>'
+    :
+      '<section class="desafio"><p class="rotulo">Foto da rodada'+(a.escolhido==="ambos"?' · as duas!':'')+'</p>'+
+      (a.escolhido==="grupo"?'<p class="oque">'+esc(a.txt)+'</p>':a.escolhido==="ambos"?cartaPose(a.opcoes[0])+'<p class="rotulo" style="margin-top:6px">e ao mesmo tempo</p>'+cartaPose(a.opcoes[1]):cartaPose(a.opcoes[a.escolhido]))+'</section>'+
+      '<section class="acoes"><button class="btn largo" data-a="foto-rodada">Abrir a câmera</button>'+
+      (a.trocou||a.escolhido==="grupo"||s.escolha?'':'<button class="btn sec" data-a="trocar">Sortear outra pose</button>')+'<button class="btn sec" data-a="sem-foto">Seguir sem foto</button></section>');
+}
+async function telaFim(){
+  const fs=await fotos();
+  return topo()+'<section class="bloco"><p class="rotulo">Fim da resenha · '+s.rodada+' rodadas</p><h2 class="chamada">As memórias da noite</h2>'+
+    '<p class="nota">'+(fs.length?fs.length+" fotos guardadas neste aparelho.":"Nenhuma foto guardada.")+'</p></section>'+
+    albumHTML(fs)+
+    '<section class="acoes">'+(fs.length?'<button class="btn" data-a="zip">Baixar todas (.zip)</button><button class="btn sec" data-a="compartilhar">Compartilhar</button>':'')+
+    '<button class="btn sec" data-a="nova">Nova resenha</button></section>'+
+    (fs.length?'<section class="acoes">'+(apagando?'<span class="nota">Apagar todas as fotos deste aparelho?</span><button class="btn alerta mini" data-a="apagar-sim">Apagar</button><button class="btn sec mini" data-a="apagar-nao">Manter</button>':'<button class="btn sec mini" data-a="apagar">Apagar as fotos do aparelho</button>')+'</section>':'');
+}
+let apagando=false, fotoUrls=[];
+function albumHTML(fs){
+  fotoUrls.forEach(u=>URL.revokeObjectURL(u)); fotoUrls=fs.map(f=>URL.createObjectURL(f.blob));
+  if(!fs.length) return "";
+  return '<section class="album">'+fs.map((f,i)=>'<button data-a="abrir-foto" data-i="'+i+'" aria-label="Foto '+(i+1)+'"><img src="'+fotoUrls[i]+'" alt="'+esc(f.txt)+'" loading="lazy"></button>').join("")+'</section>';
+}
+let albumAberto=false;
+async function desenhar(){
+  const app=$("#app"); document.body.classList.toggle("tocando",s.fase==="alarme"&&modoAudio==="alarme");
+  const foco=document.activeElement&&document.activeElement.id;
+  if(albumAberto){ const fs=await fotos(); app.innerHTML=topo()+'<section class="bloco"><h2 class="chamada">Fotos guardadas</h2><p class="nota">'+fs.length+' fotos neste aparelho.</p></section>'+albumHTML(fs)+
+    '<section class="acoes">'+(fs.length?'<button class="btn" data-a="zip">Baixar todas (.zip)</button><button class="btn sec" data-a="compartilhar">Compartilhar</button>':'')+'<button class="btn sec" data-a="fechar-album">Voltar</button></section>'; return; }
+  if(s.fase==="config") app.innerHTML=telaConfig();
+  else if(s.fase==="inicio") app.innerHTML=telaInicio();
+  else if(s.fase==="espera"){ app.innerHTML=telaEspera(); desenharRelogio(); desenharStatus(); }
+  else if(s.fase==="alarme") app.innerHTML=telaAlarme();
+  else app.innerHTML=await telaFim();
+  if(foco){const el=document.getElementById(foco);if(el&&el.focus)el.focus();}
+}
+
+/* ---------------- ações ---------------- */
+async function baixarZip(){
+  const fs=await fotos(); if(!fs.length) return;
+  if(!window.JSZip){ fs.forEach((f,i)=>{const a=document.createElement("a");a.href=URL.createObjectURL(f.blob);a.download="dose-e-pose-"+String(i+1).padStart(2,"0")+".jpg";a.click();}); return; }
+  const z=new JSZip(); fs.forEach((f,i)=>z.file("dose-e-pose-"+String(i+1).padStart(2,"0")+".jpg",f.blob));
+  const b=await z.generateAsync({type:"blob"}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="dose-e-pose-"+new Date().toISOString().slice(0,10)+".zip"; a.click();
+}
+async function compartilhar(){
+  const fs=await fotos(); const files=fs.map((f,i)=>new File([f.blob],"dose-e-pose-"+String(i+1).padStart(2,"0")+".jpg",{type:"image/jpeg"}));
+  try{ if(navigator.canShare&&navigator.canShare({files})) await navigator.share({files,title:"Dose & Pose"}); else baixarZip(); }catch(e){}
+}
+function legendaRodada(){ const a=s.atual; return JSON.stringify({rodada:a.n,txt:a.txt,rodape:"Rodada "+a.n+" · "+hh(a.hora)}); }
+
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-a]"); if(!b||b.disabled) return;
+  const a=b.dataset.a, i=+b.dataset.i;
+  if(modoAudio===null&&(s.fase==="espera"||s.fase==="alarme")) tocar(s.fase==="alarme"&&!s.atual.parado?"alarme":"silencio");
+  switch(a){
+    case "sem": s.jogadores[i].sem=!s.jogadores[i].sem; break;
+    case "tirar": if(s.jogadores.length>1) s.jogadores.splice(i,1); break;
+    case "mais": s.jogadores.push({nome:"",sem:false}); guardar(); await desenhar(); { const el=$("#j-"+(s.jogadores.length-1)); if(el) el.focus(); } return;
+    case "unidade": s.unidade=b.dataset.v; break;
+    case "escolha": s.escolha=b.dataset.v==="1"; break;
+    case "agua": s.aguaCada=+b.dataset.v; break;
+    case "limite": s.limite=+b.dataset.v; break;
+    case "permitir": if("Notification" in window){ try{ await Notification.requestPermission(); }catch(err){} } break;
+    case "teste-som": tocar("alarme"); setTimeout(()=>{ if(s.fase==="config") parar(); },2500); return;
+    case "comecar": s.jogadores=s.jogadores.filter(p=>p.nome.trim()); s.rodada=0; s.historico=[]; s.fase="inicio"; tocar("silencio"); manterTela(); break;
+    case "foto-abertura": await abrirCamera("Foto oficial da resenha · <b>todo mundo junto</b>",JSON.stringify({rodada:0,txt:"Foto oficial da resenha",rodape:"Abertura · "+hh(Date.now())})); return;
+    case "pular-abertura": agendar(); break;
+    case "foto-rodada": await abrirCamera(esc(s.atual.txt),legendaRodada()); return;
+    case "escolher": escolher(b.dataset.k==="ambos"?"ambos":+b.dataset.k); break;
+    case "parar": pararAlarme(); return;
+    case "trocar": { s.atual.opcoes=sortearOpcoes(); s.atual.escolhido=null; s.atual.txt=""; s.atual.quem=null; if(s.atual.opcoes.length===1) escolher(0); s.atual.trocou=true; break; }
+    case "sem-foto": s.historico.push({txt:s.atual.txt,hora:s.atual.hora}); if(modoAudio==="alarme") tocar("silencio"); agendar(); break;
+    case "adiantar": s.proximo=Date.now(); checar(); return;
+    case "encerrar": s.fase="fim"; s.proximo=null; parar(); break;
+    case "nova": s.fase="config"; s.rodada=0; s.historico=[]; s.atual=null; apagando=false; break;
+    case "ver-album": albumAberto=true; break;
+    case "fechar-album": albumAberto=false; break;
+    case "zip": baixarZip(); return;
+    case "compartilhar": compartilhar(); return;
+    case "apagar": apagando=true; break;
+    case "apagar-nao": apagando=false; break;
+    case "apagar-sim": await apagarFotos(); apagando=false; break;
+    case "abrir-foto": { const v=$("#veu"); v.hidden=false; v.innerHTML='<img src="'+fotoUrls[i]+'" alt="Foto"><div class="acoes"><a class="btn" href="'+fotoUrls[i]+'" download="dose-e-pose-'+(i+1)+'.jpg">Baixar</a><button class="btn sec" data-a="fechar-veu">Fechar</button></div>'; return; }
+    case "fechar-veu": $("#veu").hidden=true; $("#veu").innerHTML=""; return;
+    /* câmera */
+    case "disparar": disparar(5); return;
+    case "disparar-ja": disparar(1); return;
+    case "virar": frente=!frente; ligarCamera(); return;
+    case "cam-fechar": fecharCamera(); return;
+    case "arquivo": $("#arquivo").click(); return;
+    case "foto-denovo": { const cam=$("#camera"); const leg=cam.dataset.legenda, tit=cam.querySelector(".faixa").innerHTML; await abrirCamera(tit,leg); return; }
+    case "foto-ok": {
+      await guardarUltima();
+      if(s.fase==="inicio"){ agendar(); }
+      else if(s.fase==="alarme"){ s.historico.push({txt:s.atual.txt,hora:s.atual.hora}); if(modoAudio==="alarme") tocar("silencio"); agendar(); }
+      break;
+    }
+    default: return;
+  }
+  guardar(); desenhar();
+});
+document.addEventListener("change",e=>{
+  if(e.target.id==="teste"){ s.teste=e.target.checked; guardar(); }
+  if(e.target.id==="pets"||e.target.id==="fumo"){ s[e.target.id]=e.target.checked; guardar(); const t=$("#total-poses"); if(t) t.textContent=new Set(poses()).size; }
+  if(e.target.id==="arquivo"&&e.target.files[0]) deArquivo(e.target.files[0]);
+});
+document.addEventListener("input",e=>{ const el=e.target; if(el.dataset&&el.dataset.j!=null){ s.jogadores[+el.dataset.j].nome=el.value; guardar(); const c=$('[data-a="comecar"]'); if(c) c.disabled=nomes().length<2; } });
+
+/* início: se recarregou no meio da noite, retoma */
+if(s.fase==="alarme"&&s.atual) s.atual.parado=true;
+if(s.pets==null) s.pets=false; if(s.escolha==null) s.escolha=true; if(s.atual&&s.atual.escolhido===undefined){ s.atual.escolhido="grupo"; } if(s.fumo==null) s.fumo=false;
+desenhar();
+if(s.fase==="espera") checar();
+})();
+</script>
+</body>
+</html>
